@@ -10,7 +10,6 @@ bus = can.Bus(
     channel="can0"
 )
 
-time.sleep(2)
 L1 = 0.12
 L2 = 0.15
 d  = 0.07
@@ -98,7 +97,7 @@ def envoyer(can_id, angle_deg):
 
     data = bytearray(8)
 
-    data[0] = 0xA3
+    data[0] = 0xA5
     data[1] = 0x00
     data[2] = 0x00
     data[3] = 0x00
