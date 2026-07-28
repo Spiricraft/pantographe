@@ -86,8 +86,59 @@ def angl(x, y):
     if s is False:
         return None
     t1_deg = np.degrees(s[0])  
-    return envoyer(0x141, t1_deg)
+    t2_deg = np.degrees(s[1])
+    anglmot1=(status(0x141)/65536)*360
+    anglmot2=(status(0x142)/65536)*360
+    sens1=testsensrota(anglmot1, t1_deg, 1)
+    sens2=testsensrota(anglmot2, t2_deg, 2)
+    return envoyer(0x141, t1_deg,300,sens1),envoyer(0x141, t1_deg,300,sens2)
+def testsensrota(anglea, angleb, mot):
+    if mot == 1:
+        borne_min, borne_max = -76, 127
+    elif mot == 2:
+        borne_min, borne_max = 53, 256
+    pas = 0.5  
+    if anglea <= angleb:
+        etapes = int((angleb - anglea) / pas)
+        valeurs = [anglea + i * pas for i in range(etapes + 1)]
+    else:
+        etapes = int((anglea - angleb) / pas)
+        valeurs = [anglea - i * pas for i in range(etapes + 1)]
 
+    for i in valeurs:
+        if i > borne_max or i < borne_min:
+            return 0x01  
+
+    return 0x00  
+        
+
+def status(canid):
+    data = bytearray(8)
+    data[0] = 0x90
+    data[1] = 0
+    data[2] = 0
+    data[3] = 0
+    data[4] = 0
+    data[5] = 0
+    data[6] = 0
+    data[7] = 0
+
+    msg = can.Message(
+        arbitration_id=canid,
+        data=data,
+        is_extended_id=False
+    )
+
+    bus.send(msg)
+
+    rep = bus.recv(timeout=0.1)  
+
+    if rep is None:
+        return None
+
+    encoder = rep.data[6] | (rep.data[7] << 8)
+
+    return encoder
 
 import struct
 
@@ -130,34 +181,9 @@ def envoyer_couple(can_id, couple):
             arbitration_id=140+can_id,
             data=data,
             is_extended_id=False))
-def recevoir(timeout=0.05):
 
-    msg = bus.recv(timeout)
 
-    if msg is None:
-        return None
 
-    return msg
-
-def lire_position():
-
-    # envoi de la commande de lecture
-    data = [0x92,0,0,0,0,0,0,0]
-
-    bus.send(
-        can.Message(
-            arbitration_id=0x141,
-            data=data,
-            is_extended_id=False
-        )
-    )
-
-    rep = bus.recv(0.1)
-
-    if rep is None:
-        return None
-
-    return rep.data
 
 
 ####==========================================================================
