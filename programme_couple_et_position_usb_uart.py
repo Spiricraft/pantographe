@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sympy as sp
 
 import can
+import struct
 
 bus = can.Bus(
     interface="socketcan",
@@ -114,33 +115,24 @@ def testsensrota(anglea, angleb, mot):
 
 def status(canid):
     data = bytearray(8)
-    data[0] = 0x90
-    data[1] = 0
-    data[2] = 0
-    data[3] = 0
-    data[4] = 0
-    data[5] = 0
-    data[6] = 0
-    data[7] = 0
+    data[0] = 0x90  # Command byte
 
-    msg = can.Message(
-        arbitration_id=canid,
-        data=data,
-        is_extended_id=False
-    )
-
+    msg = can.Message(arbitration_id=canid, data=data, is_extended_id=False)
     bus.send(msg)
 
-    rep = bus.recv(timeout=0.1)  
-
+    rep = bus.recv(timeout=0.1)
     if rep is None:
         return None
 
-    encoder = rep.data[6] | (rep.data[7] << 8)
+    encoder = rep.data[2] | (rep.data[3] << 8)
+    encoder_raw = rep.data[4] | (rep.data[5] << 8)
+    encoder_offset = rep.data[6] | (rep.data[7] << 8)
 
-    return encoder
+    angle_deg = (encoder / 65536) * 360
 
-import struct
+    return angle_deg
+
+
 
 def envoyer(can_id, angle_deg,vitesse_dps,sens=0x00):
 
