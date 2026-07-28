@@ -97,7 +97,7 @@ def angl(x, y):
     sens1 = testsensrota(anglmot1, t1_deg, 1)
     sens2 = testsensrota(anglmot2, t2_deg, 2)
     envoyer(0x141, t1_deg, 300, sens1)
-    envoyer(0x142, t2_deg, 300, sens2)
+    envoyer(0x142, t2_deg*36, 300, sens2)
 
     return True
 def testsensrota(anglea, angleb, mot):
