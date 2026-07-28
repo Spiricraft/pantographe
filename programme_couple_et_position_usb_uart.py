@@ -127,7 +127,7 @@ def envoyer_couple(can_id, couple):
     data[4:8]=struct.pack("<i",c)
 
     bus.send(can.Message(
-            arbitration_id=can_id,
+            arbitration_id=140+can_id,
             data=data,
             is_extended_id=False))
 def recevoir(timeout=0.05):
