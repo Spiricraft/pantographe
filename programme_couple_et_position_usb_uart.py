@@ -97,7 +97,7 @@ def envoyer(can_id, angle_deg):
 
     data = bytearray(8)
 
-    data[0] = 0xA3
+    data[0] = 0xA5
     data[1] = 0x00
     data[2] = 0x00
     data[3] = 0x00
@@ -105,7 +105,7 @@ def envoyer(can_id, angle_deg):
     data[4:8] = struct.pack("<i", angle)
 
     msg = can.Message(
-        arbitration_id=can_id,
+        arbitration_id=can_id+140,
         data=data,
         is_extended_id=False
     )
