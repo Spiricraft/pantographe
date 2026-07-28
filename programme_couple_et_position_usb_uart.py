@@ -97,7 +97,7 @@ def envoyer(can_id, angle_deg):
 
     data = bytearray(8)
 
-    data[0] = 0xA5
+    data[0] = 0xA3
     data[1] = 0x00
     data[2] = 0x00
     data[3] = 0x00
@@ -262,7 +262,7 @@ def trajectoire(x1, y1, x2, y2, V, pas=0.005):
 
     return True
 
-trajectoire(0.05, 0.12, -0.05, 0.1, 200, pas=0.005)
+
 F=[]
 def appartenance (x,y,Px,Py):
     Ea=[]
