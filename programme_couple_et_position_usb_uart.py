@@ -82,17 +82,24 @@ def inverse_kinematics(x, y, tol=1e-8):
     return bonnes[0]
 ####==========================================================================
 import struct
+
 def angl(x, y):
     s = inverse_kinematics(x, y, tol=1e-8)
     if s is False:
         return None
-    t1_deg = np.degrees(s[0])  
+
+    t1_deg = np.degrees(s[0])
     t2_deg = np.degrees(s[1])
-    anglmot1=(status(0x141)/65536)*360
-    anglmot2=(status(0x142)/65536)*360
-    sens1=testsensrota(anglmot1, t1_deg, 1)
-    sens2=testsensrota(anglmot2, t2_deg, 2)
-    return envoyer(0x141, t1_deg,300,sens1),envoyer(0x141, t1_deg,300,sens2)
+
+    anglmot1 = status(0x141)
+    anglmot2 = status(0x142)
+
+    sens1 = testsensrota(anglmot1, t1_deg, 1)
+    sens2 = testsensrota(anglmot2, t2_deg, 2)
+    envoyer(0x141, t1_deg, 300, sens1)
+    envoyer(0x142, t2_deg, 300, sens2)
+
+    return True
 def testsensrota(anglea, angleb, mot):
     if mot == 1:
         borne_min, borne_max = -76, 127
@@ -135,7 +142,7 @@ def status(canid):
 
 
 def envoyer(can_id, angle_deg,vitesse_dps,sens=0x00):
-
+    angle_deg = angle_deg % 360
     angle = int(angle_deg * 100)
     vitesse = int(vitesse_dps)
 
