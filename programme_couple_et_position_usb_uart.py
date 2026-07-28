@@ -91,16 +91,16 @@ def angl(x, y):
 
 import struct
 
-def envoyer(can_id, angle_deg):
+def envoyer(can_id, angle_deg,vitesse_dps,sens=0x00):
 
     angle = int(angle_deg * 100)
+    vitesse = int(vitesse_dps)
 
     data = bytearray(8)
 
-    data[0] = 0xA5
+    data[0] = 0xA6
     data[1] = 0x00
-    data[2] = 0x00
-    data[3] = 0x00
+    data[2:4] = struct.pack("<H", vitesse)
 
     data[4:8] = struct.pack("<i", angle)
 
