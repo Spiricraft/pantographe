@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import sympy as sp
+
 
 import can
 import struct
@@ -16,7 +16,7 @@ L2 = 0.15
 d  = 0.07
 
 
-def P3(theta1, theta5):
+def cinematique_directe(theta1, theta5):
     x2 =  d/2 + L1*np.cos(theta1)
     y2 =  L1*np.sin(theta1)
     x4 = -d/2 + L1*np.cos(theta5)
@@ -34,7 +34,7 @@ def P3(theta1, theta5):
     return xm + h*nx, ym + h*ny
 
 
-def inverse_kinematics(x, y, tol=1e-8):
+def cinematique_inverse(x, y):
     solutions = []
     dx1 = x - d/2
     dy1 = y
@@ -84,7 +84,7 @@ def inverse_kinematics(x, y, tol=1e-8):
 import struct
 
 def angl(x, y):
-    s = inverse_kinematics(x, y, tol=1e-8)
+    s = cinematique_inverse(x, y)
     if s is False:
         return None
 
@@ -132,8 +132,6 @@ def status(canid):
         return None
 
     encoder = rep.data[2] | (rep.data[3] << 8)
-    encoder_raw = rep.data[4] | (rep.data[5] << 8)
-    encoder_offset = rep.data[6] | (rep.data[7] << 8)
 
     angle_deg = (encoder / 65536) * 360
 
@@ -164,22 +162,7 @@ def envoyer(can_id, angle_deg,vitesse_dps,sens=0x00):
 
     return True
 
-def envoyer_couple(can_id, couple):
 
-    c = int(couple*100)
-
-    data = bytearray(8)
-
-    data[0]=0xA1
-    data[1]=0
-    data[2]=0
-    data[3]=0
-    data[4:8]=struct.pack("<i",c)
-
-    bus.send(can.Message(
-            arbitration_id=140+can_id,
-            data=data,
-            is_extended_id=False))
 
 
 
@@ -206,32 +189,6 @@ def afficher(x, y, theta1, theta5):
     plt.show()
 
 
-def jacobian(theta1, theta5):
-    x2 =  d/2 + L1*np.cos(theta1)
-    y2 =  L1*np.sin(theta1)
-    x4 = -d/2 + L1*np.cos(theta5)
-    y4 =  L1*np.sin(theta5)
-    x3, y3 = P3(theta1, theta5)
-    delta = (x3 - x2)*(y3 - y4) - (y3 - y2)*(x3 - x4)
-    b1 = L1*(-(x3 - x2)*np.sin(theta1) + (y3 - y2)*np.cos(theta1))
-    b2 = L1*(-(x3 - x4)*np.sin(theta5) + (y3 - y4)*np.cos(theta5))
-    J = np.array([
-        [ (y3 - y4)*b1 / delta, -(y3 - y2)*b2 / delta],
-        [-(x3 - x4)*b1 / delta,  (x3 - x2)*b2 / delta]])
-    return J
-
-
-def couple(theta1, theta5, Fx, Fy):
-    J   = jacobian(theta1, theta5)
-    tau = J.T @ np.array([Fx, Fy])
-    return tau[0], tau[1]
-
-
-def couple_pos(x, y, Fx, Fy):
-    theta1, theta5 = inverse_kinematics(x, y)
-    return couple(theta1, theta5, Fx, Fy)
-
-
 
 
 
@@ -246,141 +203,14 @@ def espacetravail():
     F=[]
     for x in X:
         for y in Y:
-            if inverse_kinematics(x, y, tol=1e-8) == False:
+            if cinematique_inverse(x, y) == False:
                 F.append([x,y])
             else:
                 T.append([x,y])
     plt.plot([p[0] for p in T], [p[1] for p in T], 'g.', markersize=5, label='accessible')
-    plt.plot([p[0] for p in F], [p[1] for p in F], 'r.', markersize=5, label='inaccessible')
-    plt.axis('equal')
+
     plt.grid(True)
     plt.legend()
     plt.title("Espace de travail")
     plt.show()
 
-def trajectoire(x1, y1, x2, y2, V, pas=0.005):
-    
-    X = np.linspace(x1, x2, int(np.sqrt((x2-x1)**2 + (y2-y1)**2) / pas))
-    Y = ((y2-y1)/(x2-x1)) * (X - x1) + y1 if x1 != x2 else np.linspace(y1, y2, len(X))
-
-    T = []
-    for i in range(len(X)):
-        sol = inverse_kinematics(X[i], Y[i])
-        if sol is False:
-            print(f"Point inaccessible : ({X[i]:.3f}, {Y[i]:.3f})")
-            return False
-        T.append(sol)
-    plt.figure()
-    plt.plot(X, Y, 'g.-', markersize=3, label='trajectoire')
-    plt.plot(x1, y1, 'go', markersize=8, label='départ')
-    plt.plot(x2, y2, 'rs', markersize=8, label='arrivée')
-    plt.plot([-d/2, d/2], [0, 0], 'ks-', markersize=8, label='base')
-    plt.axis('equal')
-    plt.grid(True)
-    plt.legend()
-    plt.title("Trajectoire")
-    plt.show()
-
-##    for i in range(len(T)):
-##        envoyer(T[i][0], T[i][1])
-##        time.sleep(pas / V)
-
-    return True
-
-
-F=[]
-def appartenance (x,y,Px,Py):
-    Ea=[]
-    Eb=[]
-    for i in range (len(Px)):
-        Ea.append((Py[i]-Py[i+1])/(Px[i]-Px[i+1]))
-        Eb.append(Py[i]-Px[i]*((Py[i]-Py[i+1])/(Px[i]-Px[i+1])))
-    x = Symbol("x")
-    k=0
-    for i in range (len(Px)):
-        s=(y-Eb(i))/Ea(i)
-        if Px[i]<s<Px[i+1] or Px[i]>s>Px[i+1]:
-            k+=1
-    if k%2==1:
-        return True
-            
-    return False
-
-def direction_correction(x, y, traj, k):
-    if k < len(traj) - 1:
-        tx = traj[k+1][0] - traj[k][0]
-        ty = traj[k+1][1] - traj[k][1]
-    else:
-        tx = traj[k][0] - traj[k-1][0]
-        ty = traj[k][1] - traj[k-1][1]
-
-    norme_t = np.sqrt(tx**2 + ty**2)
-    tx /= norme_t
-    ty /= norme_t
-    nx = traj[k][0] - x
-    ny = traj[k][1] - y
-    norme_n = np.sqrt(nx**2 + ny**2)
-    if norme_n < 1e-10:
-        return 0.0, 0.0
-    nx /= norme_n
-    ny /= norme_n
-
-    return nx, ny
-
-
-
-
-
-def asserv(traj, kp=20.0, kd=2.0, dt=0.02, seuil_sortie=0.01):
-    erreur_prec = 0.0
-    run = True
-    try:
-        while run:
-            td = time.time()
-            pos = lire_position()
-            if pos is None:
-                time.sleep(dt)
-                continue
-            x, y = pos
-            erreur, point_proche, k = distance_avec_index(x, y, traj)
-            if erreur > seuil_sortie:
-                derivee = (erreur - erreur_prec) / dt
-                F_norme = kp * erreur + kd * derivee
-                nx, ny = direction_correction(x, y, traj, k)
-                Fx = F_norme * nx
-                Fy = F_norme * ny
-                sol = inverse_kinematics(x, y)
-                if sol is not False:
-                    tau1, tau2 = couple_pos(x, y, Fx, Fy)
-                    envoyer_couple(tau1, tau2)
-            else:
-                envoyer_couple(0.0, 0.0)
-
-            erreur_prec = erreur
-            t_ecoule = time.time() - td
-            time.sleep(max(0.0, dt - t_ecoule))
-
-    except KeyboardInterrupt:
-        envoyer_couple(0.0, 0.0)
-        print("fin")
-
-
-def distance_avec_index(x, y, traj):
-    M = np.inf
-    k = 0
-    for i in range(len(traj)):
-        d_i = np.sqrt((x - traj[i][0])**2 + (y - traj[i][1])**2)
-        if d_i < M:
-            M = d_i
-            k = i
-    return M, traj[k], k
-
-
-
-         
-    
-       
-
-    
-
-    
