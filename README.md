@@ -1,5 +1,9 @@
 ### Installation module can sur Raspberry (1ere installation)
 
+Identification Raspi:
+id:basile
+mdp:Basile2013
+
 -avant tout il est souvent necessaire de corriger l'horloge
 
 `sudo date -s "2026-07-24 11:00:00"`
